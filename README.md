@@ -31,6 +31,9 @@ None
 | `200` | Document found and returned
 | `404` | Document not found
 
+
+## Payload Schema
+
 ## Example Responses
 
 ### Success
@@ -43,14 +46,14 @@ None
                 {
                     "accept_time": null,
                     "assigned_on": "2024-01-04T14:52:43",
-                    "fullname": "Αυγουστάκη Γεωργία",
-                    "username": "avgoustaki"
+                    "fullname": "XXXXXX YYYYY",
+                    "username": "YYYYYY"
                 },
                 {
                     "accept_time": null,
                     "assigned_on": "2024-01-04T14:52:43",
-                    "fullname": "Θώμου Ήβη",
-                    "username": "thomou"
+                    "fullname": "XXXXXXX YYYYY",
+                    "username": "XXXXXX"
                 }
             ],
             "cc": "",
@@ -64,18 +67,18 @@ None
             "incoming_mail": {
                 "date": "2024-01-04 13:12:31",
                 "from": "Δ/Υ",
-                "subject": " Χορήγηση αναρρωτικής άδειας Μαρκατάτος Νικόλαος"
+                "subject": " Χορήγηση αναρρωτικής άδειας XXXXXX YYYYYY"
             },
             "issuing_authority": "SCH.GR ΓΡΑΦΕΙΟ ΣΥΝΔΕΣΜΟΥ ΕΚΠΑΙΔΕΥΣΗΣ ΝΤΙΣΕΛΝΤΟΡΦ",
             "issuing_authority_date": "2024-01-04",
             "issuing_authority_id": null,
             "issuing_authority_place": "Αθήνα",
             "last_modified": {
-                "modified_by_fullname": "Αλεξάκη Αικατερίνη",
-                "modified_by_username": "alexaki",
+                "modified_by_fullname": "XXXXXX YYYYYY",
+                "modified_by_username": "YYYYYY",
                 "modified_on_date": "2024-01-26T11:22:15"
             },
-            "summary": "Χορήγηση αναρρωτικής άδειας Μαρκατάτος Νικόλαος"
+            "summary": "Χορήγηση αναρρωτικής άδειας XXXXXX YYYYY"
         }
     },
     "success": true
