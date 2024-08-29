@@ -3,7 +3,7 @@ from flask import Flask
 #from flask_cors import CORS
 from extensions import db
 from settings import MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB, MYSQL_HOST
-from blueprint_eprotocol import eprotocol
+from blueprint_eprotocol import eprotocol as eprotocol_v1
 
 app = Flask(__name__)
 
@@ -20,4 +20,4 @@ db.init_app(app)
 
 
 # https://medium.com/@karthikeyan.ranasthala/build-a-jwt-based-authentication-rest-api-with-flask-and-mysql-5dc6d3d1cb82
-app.register_blueprint(eprotocol, url_prefix="/api/")
+app.register_blueprint(eprotocol_v1, url_prefix="/api/v1.0/")
