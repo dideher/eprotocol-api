@@ -4,15 +4,15 @@ export PYTHONPATH=src
 
 flask run
 
-# Retrieve Document
+## Retrieve Document
 
 The API endpoint retrieves an existing document
 
-## Endpoint URI
+### Endpoint URI
 
 `/api/v1.0/document/{year}/{p_id}`
 
-## Path parameters
+### Path parameters
 
 
 | Name | Type | Required |  Required |
@@ -20,11 +20,11 @@ The API endpoint retrieves an existing document
 | `year` | `int` | yes | The year of the document expressed as `yyyy` |
 | `p_id` | `int` | yes | The ID of the document |
 
-## Query parameters
+### Query parameters
 
 None
 
-## HTTP Responses
+### HTTP Responses
 
 | Status | Description
 | - | - |
@@ -32,11 +32,37 @@ None
 | `404` | Document not found
 
 
-## Payload Schema
+### Payload Schema
 
-## Example Responses
+The payload, in case of success, consists of single `document` object defined as : 
 
-### Success
+* `associated_departments` [`list`] - a list of associated/assigned departments. Each "associated department" consists of the following attributes : 
+    * `accept_time` [`datetime`] - when the department accepted the assignment
+    * `assigned_on` [`datetime`] - when the assigment took place 
+    * `fullname` [`string`] - the full name of the department
+    * `username` [`string`] - the username of the department
+
+* `cc` [`string`] -
+* `comments` [`string`] -
+* `completed` [`string`] -
+* `date` [`string`] -
+* `direction` [`string`] -
+* `folder_archive_date` [`string`] -
+* `folder_archive_id` [`string`] -
+* `p_id` [`string`] -
+* `issuing_authority` [`string`] -
+* `issuing_authority_date` [`string`] -
+* `issuing_authority_id` [`string`] -
+* `issuing_authority_place` [`string`] -
+* `summary` [`string`] -
+* `last_modified` [object] - 
+    * `modified_by_fullname` 
+    * `modified_by_username`
+    * `modified_on_date`
+
+### Example Responses
+
+#### Success
 
 ```json
 {
@@ -86,7 +112,7 @@ None
 ```
 
 
-### Failure
+#### Failure
 
 ```json
 {
