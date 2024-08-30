@@ -3,32 +3,6 @@ volumes:
   dbdata: {}
 
 services:
-  # db:
-  #   image: mariadb:11.4.2
-  #   environment:
-  #     MARIADB_ROOT_PASSWORD: scriptumdbpass
-  #     MARIADB_DATABASE: outlook
-  #     MARIADB_USER: scriptum
-  #     MARIADB_PASSWORD: scriptumdbpass
-  #   volumes:
-  #     - dbdata:/var/lib/mysql
-  #     - ./dev/mariadb:/docker-entrypoint-initdb.d
-  #   ports:
-  #     - "3306:3306"
-  # phpmyadmin:
-  #   image: phpmyadmin/phpmyadmin
-  #   container_name: pma
-  #   links:
-  #     - db
-  #   environment:
-  #     PMA_HOST: db
-  #     PMA_USER: root
-  #     PMA_PASSWORD: scriptumdbpass
-  #     PMA_PORT: 3306
-  #     #PMA_ARBITRARY: 1
-  #   restart: always
-  #   ports:
-  #     - 8002:80
   nginx:
     restart: always
     build: 
