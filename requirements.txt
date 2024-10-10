@@ -1,3 +1,6 @@
 flask
 flask-mysqldb
+Flask-HTTPAuth
 python-dotenv
+marshmallow
+pytz
