@@ -1,8 +1,14 @@
-from flask import Blueprint, request, jsonify, make_response
+import MySQLdb
+import pytz
+from flask import Blueprint, request, jsonify, make_response, abort, current_app
+from marshmallow import ValidationError
 from typing import Union
 from datetime import datetime, date
-from extensions import db
-from collections import OrderedDict
+from extensions import db, auth
+from schemas import PreAllocateDocumentsRequestSchema, PreAllocateDocumentsResponseSchema
+from datetime import datetime, timezone
+
+
 eprotocol = Blueprint("eprotocol", __name__)
 
 # def get_departments():
@@ -204,6 +210,184 @@ def search_documents():
 
 
     return make_response(jsonify({'success': True, 'payload': payload}), 200)
+
+
+@eprotocol.route("/departments", methods=["GET"])
+def get_departments():
+    cur = db.connection.cursor()
+    try:
+        name_str: str = request.args.get('name', None)
+        page_number_str: str = request.args.get('page_number', 1)
+        page_size_str: str = request.args.get('page_size', 25)
+        
+        # normalize page_number and page_size
+        try:
+            page_number = int(page_number_str)
+        except:
+            page_number = 1
+
+        try:
+            page_size = int(page_size_str)
+        except:
+            page_size = 25
+
+        sql_query = "SELECT id, name, des FROM departments "
+        sql_query_for_count = "SELECT COUNT(*) AS count FROM departments "
+        
+        # contruct WHERE clause
+        sql_where_clause = "WHERE 1=1 " 
+        if name_str is not None:
+            sql_where_clause = f"{sql_where_clause} AND name LIKE '%{name_str}%' OR des LIKE '%{name_str}%'" 
+        
+        # construct final queries
+        sql_query = f"{sql_query} {sql_where_clause} ORDER BY name LIMIT {page_size} OFFSET {(page_number - 1) * page_size}"
+        sql_query_for_count = f"{sql_query_for_count} {sql_where_clause} "
+        
+        rv = cur.execute(sql_query)
+        rv = cur.fetchall()
+
+        cur.execute(sql_query_for_count)
+        count_r = cur.fetchone().get('count', 0)
+
+        departments = list()
+        
+        for v in rv:
+            item = {
+                'id': v['id'],
+                'name': v['name'],
+                'description': v['des'],
+            }
+            
+            departments.append(item)
+
+        payload = {
+            'total_departments': count_r,
+            'page_size': page_size,
+            'page_number': page_number,
+            'departments': departments
+        }
+
+        return make_response(jsonify({'success': True, 'payload': payload}), 200)
+    
+    except MySQLdb.Error as e:
+        current_app.logger.error(f"mysql error fetching departments: {e}")
+        return abort(500, description="error fetching departments")
+    finally:
+        try:
+            cur.close()
+        except:
+            pass
+
+@eprotocol.route("/document/preallocate", methods=["POST"])
+@auth.login_required
+def preallocate_documents():
+
+    # Get the JSON data from the request
+    json_data = request.get_json()
+
+    if not json_data:
+        return abort(400, description="invalid request, json is missing")
+    
+    request_scheme = PreAllocateDocumentsRequestSchema()
+
+    try:
+        # Validate the incoming data using the schema
+        data = request_scheme.load(json_data)
+    except ValidationError as err:
+        # Return validation errors if any
+        return abort(400, description={"validation_errors": err.messages})
+    
+    department_id = data.get('department_id') 
+    count = data.get('count')
+    issuing_authority = data.get('issuing_authority')
+    summary = data.get('summary')
+    direction = data.get('direction')
+    dry_run = data.get('dry_run')
+
+    now = datetime.now(tz=pytz.timezone('Europe/Athens'))
+    year = now.year
+    cur = db.connection.cursor()
+    
+    try:
+        cur.execute(f"SELECT max(pn) AS protocol_number FROM book WHERE io_year={year}")
+        rv = cur.fetchall()
+        current_max_pn = rv[0].get('protocol_number')
+        
+        # (453771, 10389, '2024-09-19', 2024, NULL, NULL, 'Λ', NULL, NULL, NULL, NULL, 0, 'ΛΥΔΑΚΗ', NULL, 0, NULL, 0, NULL, 0, '2024-09-19 06:23:56', 2);
+
+        book_query = "INSERT INTO book (pn, io_date, io_year, io_auth, status, summary) VALUES (%s, %s, %s, %s, %s, %s)"
+        book_rows = list()
+        
+        for r in range(1, count + 1):
+            
+            book_rows.append((
+                current_max_pn + r,
+                now.date().isoformat(),
+                year,
+                f'{issuing_authority}-{r}',
+                0 if direction == 'in' else 1,
+                summary
+            ))
+
+        # Start transaction
+        db.connection.begin()
+        
+        # Execute many rows in one transaction
+        r = cur.executemany(book_query, book_rows)
+        
+        # fetch inserted IDs
+        pn_reserved = [r[0] for r in book_rows]
+        q = f'SELECT id, pn FROM book WHERE io_year={year} AND pn IN ({",".join(map(str, pn_reserved))})'
+        
+        cur.execute(q)
+        rv = cur.fetchall()
+        
+        # associate books with department
+        bookdep_query = "INSERT INTO bookdep (book_id, department_id, ch_date) VALUES (%s, %s, %s)"
+        bookdep_rows = list()
+        book_pns = list()
+        for r in rv:
+            
+            bookdep_rows.append((
+                r.get('id'),
+                department_id,
+                now.strftime('%Y-%m-%d %H:%M:%S')
+            ))
+
+            book_pns.append(r.get('pn'))
+        
+        r = cur.executemany(bookdep_query, bookdep_rows)
+
+        output_data = {
+            'department_id': department_id,
+            'count': count,
+            'issuing_authority': issuing_authority,
+            'summary': summary,
+            'create_at': now,
+            'document_id': book_pns,
+            'year': year,
+            'direction': direction,
+        }
+
+        # Commit the transaction
+        if dry_run is False:
+            db.connection.commit()
+        else:
+            db.connection.rollback()
+
+        return PreAllocateDocumentsResponseSchema().dump(output_data)
+    except MySQLdb.Error as e:
+        current_app.logger.error(f"mysql error: {e}")
+        db.connection.rollback()
+        
+        return abort(500, description="error in database")
+    finally:
+        try:
+            cur.close()
+        except:
+            pass
+
+    return "errorororor"
     
 
 
